@@ -35,7 +35,10 @@ public class BufferedImageAdapter implements GreyscaleRaster
 
   private BufferedImage img;
   private int colorShift = 0;
+  private int contrastBoost = 0;
   private boolean invertColors = false;
+  private int minColor = 255;
+  private int maxColor = 0;
 
   public BufferedImageAdapter(BufferedImage img)
   {
@@ -45,6 +48,28 @@ public class BufferedImageAdapter implements GreyscaleRaster
   public BufferedImageAdapter(BufferedImage img, boolean invertColors)
   {
     this.img = img;
+
+	 // Get used range (before colorshift or invertColors are set)
+	 this.invertColors = false;
+	 int x = 0;
+	 int y = 0;
+	 int width = img.getWidth();
+	 int height = img.getHeight();
+
+	 for (y = 0; y < height; y++)
+	 {
+      for (x = 0; x < width; x++)
+      {
+			int value = this.getGreyScale(x,y);
+         if (this.minColor > value) {
+				this.minColor = value;
+			}
+			if (this.maxColor < value) {
+				this.maxColor = value;
+			}
+      }
+    }
+
     this.invertColors = invertColors;
   }
 
@@ -56,10 +81,47 @@ public class BufferedImageAdapter implements GreyscaleRaster
       return this.colorShift;
   }
 
+  public void setContrastBoost(int boost){
+      this.contrastBoost = boost;
+  }
+
+  public int getContrastBoost(){
+      return this.contrastBoost;
+  }
+
   public int getGreyScale(int x, int line)
   {
     Color c = new Color(img.getRGB(x, line));
-    int value = colorShift+(int) (0.3 * c.getRed() + 0.59 * c.getGreen() + 0.11 * c.getBlue());
+
+	 // Get perceived brightness
+	 double brightness = (0.3 * c.getRed() + 0.59 * c.getGreen() + 0.11 * c.getBlue());
+
+	 // Boost contrast levels
+	 if (this.contrastBoost > 0) {
+		int average = (this.minColor + this.maxColor)/2;
+		int minimum;
+		int maximum;
+
+		// 50% contrastBoost maps grayscale to full dynamic range
+		if (this.contrastBoost <= 127) {
+			minimum = (this.contrastBoost * this.minColor) / 127;
+			maximum = 255 - (this.contrastBoost * (255 - this.maxColor)) / 127;
+		}
+		// Above 50% clips in further toward average brightness, clamping top and bottom ranges
+		else {
+			minimum = this.minColor + (average - this.minColor) * (this.contrastBoost - 128) / 150;
+			maximum = this.maxColor - (this.maxColor - average) * (this.contrastBoost - 128) / 150;
+		}
+
+		if (maximum > minimum) {
+			brightness = minimum + (brightness - minimum) * 255 / (maximum - minimum);
+		}
+	 }
+
+	 // Add color shift
+    int value = colorShift+(int)brightness;
+
+	 // Apply optional inversion and clamp
     return invertColors ? 255-Math.max(Math.min(value, 255), 0) : Math.max(Math.min(value, 255), 0);
   }
 

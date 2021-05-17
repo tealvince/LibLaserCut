@@ -53,55 +53,17 @@ public class Ordered extends DitheringAlgorithm
     int width = src.getWidth();
     int height = src.getHeight();
     int[][] filter = getThresholdMatrix();
-    int nPatWid = filter.length;
-
 
     int x = 0;
     int y = 0;
-    int pixelcount = 0;
 
-    for (y = 0; y < (height - nPatWid); y = y + nPatWid)
+    for (y = 0; y < height; y++)
     {
-
-      for (x = 0; x < (width - nPatWid); x = x + nPatWid)
+      for (x = 0; x < width; x++)
       {
-
-        for (int xdelta = 0; xdelta < nPatWid; xdelta++)
-        {
-          for (int ydelta = 0; ydelta < nPatWid; ydelta++)
-          {
-            this.setBlack(src, target, x + xdelta, y + ydelta, src.getGreyScale(x + xdelta, y + ydelta) < filter[xdelta][ydelta]);
-          }
-        }
+        this.setBlack(src, target, x, y, src.getGreyScale(x, y) < filter[x%4][y%4]);
       }
-      for (int xdelta = 0; xdelta < nPatWid; xdelta++)
-      {
-        for (int ydelta = 0; ydelta < nPatWid; ydelta++)
-        {
-
-          if (((x + xdelta) < width) && ((y + ydelta) < height))
-          {
-            this.setBlack(src, target, x + xdelta, y + ydelta, src.getGreyScale(x + xdelta, y + ydelta) < filter[xdelta][ydelta]);
-          }
-        }
-      }
-      setProgress((100 * pixelcount++) / (height));
-    }
-
-    // y is at max; loop through x
-    for (x = 0; x < (width); x = x + nPatWid)
-    {
-      for (int xdelta = 0; xdelta < nPatWid; xdelta++)
-      {
-        for (int ydelta = 0; ydelta < nPatWid; ydelta++)
-        {
-
-          if (((x + xdelta) < width) && ((y + ydelta) < height))
-          {
-            this.setBlack(src, target, x + xdelta, y + ydelta, src.getGreyScale(x + xdelta, y + ydelta) < filter[xdelta][ydelta]);
-          }
-        }
-      }
+      setProgress((100 * y) / (height));
     }
   }
 
